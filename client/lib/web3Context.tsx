@@ -35,13 +35,9 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   // Initialize Web3Manager
   useEffect(() => {
-    console.log("OIOIOI TO AQUI AUAEIAOWFIOAWHFIOWA");
     const nftAddress =
       import.meta.env.VITE_CONTRACT_ADDRESS ||
       "0x0000000000000000000000000000000000000000";
-
-    console.log("pididdy: ", import.meta.env.VITE_CONTRACT_ADDRESS);
-    console.log(nftAddress);
     const marketplaceAddress =
       import.meta.env.VITE_MARKETPLACE_ADDRESS ||
       "0x0000000000000000000000000000000000000000";
