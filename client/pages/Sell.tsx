@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { useWeb3 } from "@/lib/web3Context";
 import { Loader2, Upload, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { TOKENIZED_GOODS_ABI } from "@/lib/web3";
+import { ethers } from "ethers";
 
 export default function Sell() {
   const navigate = useNavigate();
-  const { account, isConnected } = useWeb3();
+  const { account, isConnected, web3Manager } = useWeb3();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -29,13 +31,16 @@ export default function Sell() {
   if (!isConnected) {
     return (
       <div className="container mx-auto px-4 py-16">
-        <div className="max-w-md mx-auto text-center">
-          <h2 className="text-2xl font-semibold mb-2">Connect Your Wallet</h2>
+        <div className="mx-auto text-center">
+          <h2 className="text-2xl font-semibold mb-2">
+            Conecte sua Carteira MetaMask
+          </h2>
           <p className="text-muted-foreground mb-6">
-            Please connect your MetaMask wallet to list items for sale.
+            Por favor conecte sua carteira MetaMask para listar seu ativo para
+            venda.
           </p>
           <Button onClick={() => navigate("/")} variant="outline">
-            Back to Home
+            Voltar ao Inicio
           </Button>
         </div>
       </div>
@@ -88,18 +93,60 @@ export default function Sell() {
       return;
     }
 
+    if (!web3Manager) {
+      toast.error("Web3 not initialized");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Upload image
+      // 1. Upload da imagem
       setUploadProgress(30);
       const imageUrl = await uploadImage(imageFile);
 
-      // Create listing
-      setUploadProgress(60);
+      // 2. Mint do NFT
+      setUploadProgress(50);
+      const mintTxHash = await web3Manager.mintNFT(imageUrl);
+
+      // 3. Esperar o recibo da transação (ethers já faz o parse dos eventos)
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const receipt = await provider.waitForTransaction(mintTxHash);
+
+      if (!receipt || !receipt.logs) {
+        throw new Error("Mint receipt not found");
+      }
+
+      // 4. Extrair tokenId usando a ABI
+      const nftInterface = new ethers.Interface(TOKENIZED_GOODS_ABI);
+
+      let tokenId: number | null = null;
+
+      for (const log of receipt.logs) {
+        try {
+          const parsed = nftInterface.parseLog(log);
+          if (parsed?.name === "TokenMinted") {
+            tokenId = Number(parsed.args.tokenId);
+          }
+        } catch {}
+      }
+
+      if (!tokenId) {
+        throw new Error("TokenMinted event not found – cannot extract tokenId");
+      }
+
+      // 5. Listar NFT no Marketplace
+      setUploadProgress(70);
+      const listTxHash = await web3Manager.listNFT(tokenId, formData.priceEth);
+
+      await provider.waitForTransaction(listTxHash);
+
+      // 6. Criar listing no backend
+      setUploadProgress(90);
       const response = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          tokenId,
           sellerWallet: account,
           title: formData.title,
           description: formData.description,
@@ -122,7 +169,7 @@ export default function Sell() {
       }
 
       setUploadProgress(100);
-      toast.success("Item listed successfully!");
+      toast.success("Produto criado com sucesso!");
 
       // Reset form
       setFormData({
@@ -171,16 +218,16 @@ export default function Sell() {
         className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back
+        Voltar
       </button>
 
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            List Your Item
+            Liste seu Ativo
           </h1>
           <p className="text-muted-foreground">
-            Create a new listing for your tokenized asset
+            Crie seu ativo tokenizado na lista do marketplace
           </p>
         </div>
 
@@ -188,7 +235,7 @@ export default function Sell() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Image Upload */}
             <div className="space-y-2">
-              <Label>Product Image *</Label>
+              <Label>Imagem do Produto *</Label>
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition">
                 <input
                   type="file"
@@ -207,13 +254,15 @@ export default function Sell() {
                         className="w-32 h-32 object-cover rounded-lg mx-auto"
                       />
                       <p className="text-sm text-muted-foreground">
-                        Click to change image
+                        Clique aqui para trocar a imagem
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
-                      <p className="font-medium">Click to upload image</p>
+                      <p className="font-medium">
+                        Clique aqui para enviar a imagem
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         Max 5MB • JPG, PNG, GIF
                       </p>
@@ -225,10 +274,10 @@ export default function Sell() {
 
             {/* Title */}
             <div className="space-y-2">
-              <Label htmlFor="title">Item Title *</Label>
+              <Label htmlFor="title">Título do Produto *</Label>
               <Input
                 id="title"
-                placeholder="e.g., Vintage Leather Handbag"
+                placeholder="ex: Casa na Praia de Fortaleza..."
                 value={formData.title}
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
@@ -239,10 +288,10 @@ export default function Sell() {
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Descrição</Label>
               <Textarea
                 id="description"
-                placeholder="Describe your item in detail..."
+                placeholder="Descreva brevemente o seu produto..."
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
@@ -255,10 +304,10 @@ export default function Sell() {
             {/* Category and Condition */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category">Categoria</Label>
                 <Input
                   id="category"
-                  placeholder="e.g., Fashion, Electronics"
+                  placeholder="ex: Carro, Casa, Apartamento..."
                   value={formData.category}
                   onChange={(e) =>
                     setFormData({ ...formData, category: e.target.value })
@@ -268,7 +317,7 @@ export default function Sell() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="condition">Condition</Label>
+                <Label htmlFor="condition">Condição</Label>
                 <select
                   id="condition"
                   value={formData.condition}
@@ -278,17 +327,17 @@ export default function Sell() {
                   disabled={loading}
                   className="w-full px-3 py-2 border border-input rounded-md bg-background"
                 >
-                  <option value="new">New</option>
-                  <option value="excellent">Excellent</option>
-                  <option value="good">Good</option>
-                  <option value="fair">Fair</option>
+                  <option value="new">Novo</option>
+                  <option value="excellent">Excelente</option>
+                  <option value="good">Bom</option>
+                  <option value="fair">Justo</option>
                 </select>
               </div>
             </div>
 
             {/* Price */}
             <div className="space-y-2">
-              <Label htmlFor="price">Price (ETH) *</Label>
+              <Label htmlFor="price">Preço (ETH) *</Label>
               <div className="relative">
                 <Input
                   id="price"
@@ -332,10 +381,10 @@ export default function Sell() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating Listing...
+                  Criando Produto...
                 </>
               ) : (
-                "List Item"
+                "Listar Produto"
               )}
             </Button>
           </form>

@@ -111,7 +111,7 @@ export const handleUpdateTransactionStatus: RequestHandler = async (
     );
 
     const updatedTransaction = await dbGet(
-      "SELECT * FROM transactions WHERE id = ?",
+      "SELECT * FROM transactions WHERE id = $1",
       [id],
     );
 

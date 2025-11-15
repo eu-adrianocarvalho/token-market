@@ -33,9 +33,10 @@ export default function Marketplace() {
 
   useEffect(() => {
     // Filter listings based on search term
-    const filtered = listings.filter((listing) =>
-      listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      listing.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filtered = listings.filter(
+      (listing) =>
+        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        listing.description?.toLowerCase().includes(searchTerm.toLowerCase()),
     );
     setFilteredListings(filtered);
   }, [searchTerm, listings]);
@@ -60,9 +61,11 @@ export default function Marketplace() {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-semibold mb-2">Connect Your Wallet</h2>
+        <h2 className="text-2xl font-semibold mb-2">
+          Conecte sua Carteira MetaMask
+        </h2>
         <p className="text-muted-foreground mb-6">
-          Please connect your MetaMask wallet to view the marketplace.
+          Por favor conecte sua carteira MetaMask para visualizar o marketplace.
         </p>
       </div>
     );
@@ -75,7 +78,7 @@ export default function Marketplace() {
         <div>
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Marketplace</h1>
           <p className="text-muted-foreground">
-            Browse and purchase tokenized assets from sellers around the world
+            Veja e compre ativos tokenizados de vendedores ao redor do mundo
           </p>
         </div>
 
@@ -83,7 +86,7 @@ export default function Marketplace() {
         <div className="relative">
           <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by title or description..."
+            placeholder="Busque por título ou descrição..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -98,9 +101,13 @@ export default function Marketplace() {
         ) : filteredListings.length === 0 ? (
           <div className="text-center py-16">
             <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold">No listings found</h3>
+            <h3 className="text-lg font-semibold">
+              Não existem itens listados
+            </h3>
             <p className="text-muted-foreground">
-              {searchTerm ? "Try adjusting your search" : "Be the first to list an item"}
+              {searchTerm
+                ? "Tente ajustar a sua pesquisa"
+                : "Seja o primeiro a listar um ativo!"}
             </p>
           </div>
         ) : (
@@ -124,7 +131,9 @@ export default function Marketplace() {
                   {/* Content */}
                   <div className="p-4 space-y-3">
                     <div>
-                      <h3 className="font-semibold line-clamp-2">{listing.title}</h3>
+                      <h3 className="font-semibold line-clamp-2">
+                        {listing.title}
+                      </h3>
                       <p className="text-sm text-muted-foreground line-clamp-1">
                         {listing.description}
                       </p>
@@ -132,8 +141,10 @@ export default function Marketplace() {
 
                     <div className="flex items-end justify-between">
                       <div>
-                        <p className="text-xs text-muted-foreground">Price</p>
-                        <p className="text-lg font-bold">{listing.priceEth} ETH</p>
+                        <p className="text-xs text-muted-foreground">Preço</p>
+                        <p className="text-lg font-bold">
+                          {listing.priceEth} ETH
+                        </p>
                       </div>
                       <Button size="sm">Buy Now</Button>
                     </div>

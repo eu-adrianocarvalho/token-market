@@ -46,7 +46,7 @@ export function Header() {
               to="/sell"
               className="text-sm font-medium text-foreground/80 hover:text-foreground transition"
             >
-              Sell
+              Vender
             </Link>
           </nav>
 
@@ -75,7 +75,9 @@ export function Header() {
                 className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600"
               >
                 <Wallet className="w-4 h-4" />
-                <span className="hidden sm:inline">Connect Wallet</span>
+                <span className="hidden sm:inline">
+                  Conectar Carteira MetaMask
+                </span>
                 <span className="sm:hidden">Connect</span>
               </Button>
             )}
@@ -105,7 +107,7 @@ export function Header() {
               className="block text-sm font-medium text-foreground/80 hover:text-foreground transition"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Sell
+              Vender
             </Link>
           </nav>
         )}

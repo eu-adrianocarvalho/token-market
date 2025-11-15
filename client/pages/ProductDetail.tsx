@@ -43,7 +43,7 @@ export default function ProductDetail() {
         const data = await response.json();
         setListing(data);
       } else {
-        toast.error("Listing not found");
+        toast.error("Listagem não encontrada");
         navigate("/marketplace");
       }
     } catch (error) {
@@ -56,12 +56,12 @@ export default function ProductDetail() {
 
   const handlePurchase = async () => {
     if (!isConnected) {
-      toast.error("Please connect your wallet first");
+      toast.error("Por favor conecte sua carteira primeiro");
       return;
     }
 
     if (!listing || account === listing.sellerWallet) {
-      toast.error("You cannot purchase your own item");
+      toast.error("Você não pode comprar o seu próprio ativo");
       return;
     }
 
@@ -89,8 +89,11 @@ export default function ProductDetail() {
       // Try to execute smart contract transaction if web3Manager is available
       if (web3Manager && listing.tokenId) {
         try {
-          const txHash = await web3Manager.purchaseNFT(listing.tokenId, listing.priceEth);
-          
+          const txHash = await web3Manager.purchaseNFT(
+            listing.tokenId,
+            listing.priceEth,
+          );
+
           // Update transaction with blockchain hash
           await fetch(`/api/transactions/${txData.id}/status`, {
             method: "PUT",
@@ -106,28 +109,36 @@ export default function ProductDetail() {
             method: "DELETE",
           });
 
-          toast.success("Purchase successful! Check your wallet for the NFT.");
+          toast.success(
+            "Compra feita com Sucesso! Verifique a sua carteira MetaMask para visualizar o NFT!",
+          );
           setTimeout(() => {
             navigate("/marketplace");
           }, 2000);
         } catch (contractError) {
           // If smart contract fails, keep transaction as pending
           console.error("Smart contract error:", contractError);
-          toast.warning("Transaction recorded but smart contract execution pending. Check back soon.");
+          toast.warning(
+            "Transação salva! O SmartContract ainda está em execução, volte mais tarde.",
+          );
           setTimeout(() => {
             navigate("/marketplace");
           }, 3000);
         }
       } else {
         // Without smart contracts, just record the transaction
-        toast.success("Purchase recorded! Contact seller to complete the transaction.");
+        toast.success(
+          "Compra salva! Contate o vendedor para completar a transação.",
+        );
         setTimeout(() => {
           navigate("/marketplace");
         }, 2000);
       }
     } catch (error) {
       console.error("Purchase error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to process purchase");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to process purchase",
+      );
     } finally {
       setPurchasing(false);
     }
@@ -146,8 +157,12 @@ export default function ProductDetail() {
       <div className="container mx-auto px-4 py-16 text-center">
         <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
         <h2 className="text-2xl font-semibold mb-2">Listing Not Found</h2>
-        <Button onClick={() => navigate("/marketplace")} variant="outline" className="mt-4">
-          Back to Marketplace
+        <Button
+          onClick={() => navigate("/marketplace")}
+          variant="outline"
+          className="mt-4"
+        >
+          Voltar ao Marketplace
         </Button>
       </div>
     );
@@ -163,7 +178,7 @@ export default function ProductDetail() {
         className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Marketplace
+        Voltar ao Marketplace
       </button>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -186,7 +201,9 @@ export default function ProductDetail() {
           <div className="space-y-2">
             <h1 className="text-3xl md:text-4xl font-bold">{listing.title}</h1>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-blue-600">{listing.priceEth}</span>
+              <span className="text-3xl font-bold text-blue-600">
+                {listing.priceEth}
+              </span>
               <span className="text-lg text-muted-foreground">ETH</span>
             </div>
           </div>
@@ -194,7 +211,7 @@ export default function ProductDetail() {
           {/* Description */}
           {listing.description && (
             <div className="space-y-2">
-              <h3 className="font-semibold">Description</h3>
+              <h3 className="font-semibold">Descrição</h3>
               <p className="text-muted-foreground whitespace-pre-wrap">
                 {listing.description}
               </p>
@@ -205,13 +222,13 @@ export default function ProductDetail() {
           <div className="grid grid-cols-2 gap-4">
             {listing.category && (
               <Card className="p-4">
-                <p className="text-sm text-muted-foreground">Category</p>
+                <p className="text-sm text-muted-foreground">Categoria</p>
                 <p className="font-semibold">{listing.category}</p>
               </Card>
             )}
             {listing.condition && (
               <Card className="p-4">
-                <p className="text-sm text-muted-foreground">Condition</p>
+                <p className="text-sm text-muted-foreground">Condição</p>
                 <p className="font-semibold">{listing.condition}</p>
               </Card>
             )}
@@ -219,16 +236,17 @@ export default function ProductDetail() {
 
           {/* Seller Info */}
           <Card className="p-4 bg-secondary">
-            <p className="text-sm text-muted-foreground">Seller</p>
+            <p className="text-sm text-muted-foreground">Vendedor</p>
             <p className="font-mono text-sm break-all">
-              {listing.sellerWallet.slice(0, 6)}...{listing.sellerWallet.slice(-4)}
+              {listing.sellerWallet.slice(0, 6)}...
+              {listing.sellerWallet.slice(-4)}
             </p>
           </Card>
 
           {/* Listed Date */}
           <div>
             <p className="text-sm text-muted-foreground">
-              Listed on {new Date(listing.createdAt).toLocaleDateString()}
+              Criado em {new Date(listing.createdAt).toLocaleDateString()}
             </p>
           </div>
 
@@ -240,15 +258,17 @@ export default function ProductDetail() {
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-600 gap-2"
               >
                 <Wallet className="w-5 h-5" />
-                Connect Wallet to Purchase
+                Conecte sua Carteira MetaMask para Comprar
               </Button>
             ) : isOwnItem ? (
               <div className="p-4 bg-secondary rounded-lg text-center">
-                <p className="text-muted-foreground">This is your item</p>
+                <p className="text-muted-foreground">Esse ativo é seu!</p>
               </div>
             ) : !listing.isActive ? (
               <div className="p-4 bg-destructive/10 rounded-lg text-center">
-                <p className="text-destructive">This item is no longer available</p>
+                <p className="text-destructive">
+                  Esse item não está mais disponível
+                </p>
               </div>
             ) : (
               <Button
@@ -260,10 +280,10 @@ export default function ProductDetail() {
                 {purchasing ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Processing...
+                    Processando...
                   </>
                 ) : (
-                  "Buy Now"
+                  "Comprar Agora"
                 )}
               </Button>
             )}

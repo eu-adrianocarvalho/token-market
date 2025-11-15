@@ -7,8 +7,20 @@ export const TOKENIZED_GOODS_ABI = [
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function balanceOf(address owner) view returns (uint256)",
   "function getTotalSupply() view returns (uint256)",
-  "function burn(uint256 tokenId)",
+
+  // REQUIRED ERC721 FUNCTIONS
+  "function approve(address to, uint256 tokenId)",
+  "function getApproved(uint256 tokenId) view returns (address)",
+  "function setApprovalForAll(address operator, bool approved)",
+  "function isApprovedForAll(address owner, address operator) view returns (bool)",
+  "function transferFrom(address from, address to, uint256 tokenId)",
+  "function safeTransferFrom(address from, address to, uint256 tokenId)",
+  "function safeTransferFrom(address from, address to, uint256 tokenId, bytes data)",
+
   "event TokenMinted(uint256 indexed tokenId, address indexed to, string uri)",
+  "event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)",
+  "event ApprovalForAll(address indexed owner, address indexed operator, bool approved)",
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
 ];
 
 export const MARKETPLACE_ABI = [
@@ -26,8 +38,8 @@ export const MARKETPLACE_ABI = [
 export class Web3Manager {
   private provider: BrowserProvider | null = null;
   private signer: any = null;
-  private nftContract: Contract | null = null;
-  private marketplaceContract: Contract | null = null;
+  private nftContract: any | null = null;
+  private marketplaceContract: any | null = null;
   private currentAccount: string | null = null;
 
   constructor(
@@ -169,8 +181,7 @@ export class Web3Manager {
 
     try {
       const tx = await this.nftContract.mint(this.currentAccount, imageUri);
-      const receipt = await tx.wait();
-      return receipt.transactionHash;
+      return tx.hash;
     } catch (error) {
       console.error("Error minting NFT:", error);
       throw error;
@@ -178,17 +189,49 @@ export class Web3Manager {
   }
 
   /**
-   * List NFT on marketplace
+   * List NFT on marketplace (with approval)
    */
   async listNFT(tokenId: number, priceEth: string): Promise<string> {
     if (!this.marketplaceContract)
       throw new Error("Marketplace contract not initialized");
+    if (!this.nftContract) throw new Error("NFT contract not initialized");
 
     try {
+      const signer = await this.provider.getSigner();
+
+      console.log("Checking approval for token:", tokenId);
+
+      // 1. Check current approval
+      const currentApproved = await this.nftContract.getApproved(tokenId);
+
+      if (
+        currentApproved.toLowerCase() !== this.marketplaceAddress.toLowerCase()
+      ) {
+        console.log("Token not approved. Approving now...");
+
+        // 2. Approve marketplace
+        const approveTx = await this.nftContract
+          .connect(signer)
+          .approve(this.marketplaceAddress, tokenId);
+
+        console.log("Approve TX:", approveTx.hash);
+
+        await approveTx.wait();
+        console.log("Approval confirmed!");
+      } else {
+        console.log("Token already approved. Skipping approval.");
+      }
+
+      // 3. Now call listNFT()
       const priceWei = parseEther(priceEth);
-      const tx = await this.marketplaceContract.listNFT(tokenId, priceWei);
-      const receipt = await tx.wait();
-      return receipt.transactionHash;
+
+      const listTx = await this.marketplaceContract
+        .connect(signer)
+        .listNFT(tokenId, priceWei);
+
+      console.log("List TX:", listTx.hash);
+
+      return listTx.hash;
     } catch (error) {
       console.error("Error listing NFT:", error);
       throw error;
